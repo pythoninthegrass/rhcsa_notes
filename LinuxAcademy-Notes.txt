@@ -2,8 +2,10 @@
   [ Start, Stop, and Check the Status of Network Services ]
     systemctl start/stop httpd
     systemctl start/stop network.service
-    status network
     systemctl enable/disable httpd
+    systemctl status network
+    systemctl list-units | grep network
+    systemctl is-enabled network
 
   [ Securely Transfer Files Between Systems ]
     scp myfile user@10.0.1.150:~/
