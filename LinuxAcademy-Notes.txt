@@ -1,0 +1,790 @@
+[ Linux Academy Red Hat Certified Systems Administrator Prep Course ]
+  [ Start, Stop, and Check the Status of Network Services ]
+    systemctl start/stop httpd
+    systemctl start/stop network.service
+    status network
+    systemctl enable/disable httpd
+
+  [ Securely Transfer Files Between Systems ]
+    scp myfile user@10.0.1.150:~/
+    sftp user@10.0.1.150
+    sftp> put myfile [goes to current working directory; cd to directory you want to place it into]
+
+  [ List, Create, and Delete Partitions on MBR and GPT Disks ]
+    MBR is limited to 4 primary partitions at 2TB each
+    /dev - default location for attached device storage (USB, flash drives)
+    fdisk /dev/xvdf > p (primary) > partition number 1 > first sector is 2048 default > +500M (MBs) > l - list partition types (swap, linux, LVM) > w - write changes to disk
+    mkfs -t xfs(ext4, etc.) xvdf1
+    df -h
+    blkid (displays UUID instead of device name)
+    mkdir /mnt/mymount
+    mount /dev/xvdf1 /mnt/mymount
+    umount /mnt/mymount (cd out of mount point to avoid "target is busy" error)
+    fdisk xvdf > d (delete) > w (write) > partprobe (reloads partitions into /proc)
+    mount -U UUID /mnt/mymount
+    GPT allows for 120 partitions
+    gdisk /dev/xvdf > n (new partition) > first sector is 2048 default > +500M (MBs) > l - list partition types (swap, linux, LVM) > w - write changes to disk
+    mkfs -t xfs xvdf1
+    Mount same way as MBR setup above
+    gdisk xvdf > d - delete > w - write changes to disk
+
+  [ Create and Remove Physical Volumes, Assign Physical Volumes to Volume Groups, and Create & Delete Logical Volumes ]
+    extent - smallest group of space that can be assigned to a volume group
+    gdisk /dev/xvdf > n - new > partition 1 > 8e00 (Linux LVM) > w - write
+    gdisk /dev/xvdg > n - new > partition 1 > 8e00 (Linux LVM) > w - write
+    pvcreate /dev/xvdf1 /dev/xvdfg1 > pvdisplay
+    vgcreate volume_name /dev/xvdf1 /dev/xvdfg1 > vgdisplay
+    lvcreate -n volume_name -L 10G (size) volume_group > lvdisplay
+    mkfs  -t xfs file_sys_name
+    mkdir /mnt/mymount > mount ...
+    umount /mnt/mymount
+    lvremove /dev/volume_name > lvdisplay
+    vgremove volume_group > vgdisplay
+    pvremove /dev/xvdg1 /dev/xvdf1 > pvdisplay
+
+  [ Configure Systems to Mount File Systems at Boot by Universally Unique ID (UUID) or Label ]
+    fdisk  xvdf > n - new partition > partition 1 (default) > +500M
+    fdisk xvdf > n - new partition > partition 2 (default) > +500M
+    w - write
+    mkfs -t xfs xvdf1
+    mkfs -t ext4 xvdf2
+    blkid > shows partitions and UUIDs
+    xfs_admin -L file_system1 /dev/xvdf1 > xfs_admin -l (lower case) /dev/xvdf1 (shows that label was applied)
+    tune2fs -L file_system2 /dev/xvdf2 (ext4 label program)
+    tune2fs -L file_system2 /dev/xvdf2 (ext4 label program) >  tune2fs -l (lower case) /dev/xvdf2 (shows that label was applied)
+    blkid > show UUID
+    vim /etc/fstab > UUID=gibberish /mnt/mount1 xfs defaults 1 2
+    vim /etc/fstab > UUID=gibberish /mnt/mount2 ext4 defaults 1 2
+    **Can also use LABEL= instead of UUID=)**
+    (u)mount -a 
+
+  [ Add New Partitions and Logical Volumes, and Swap to a System Non-Destructively ]
+    free -m (shows free RAM and swap)
+    fdisk xvdf > n > p > t > 8e (Linux LVM)
+    pvcreate /dev/xvdf1
+    vgcreate volume_name /dev/xvdf1 > vgdisplay
+    lvcreate -n  lv_name (swap) -L 2G  volume_name > lvdisplay
+    mkswap /dev/volume_name/swap
+    swapon(off) /dev/volume_name/swap > free -m > shows swap
+    vim /etc/fstab > location or UUID swap 0 0
+    swapon -a
+    **Non-LVM Swap**
+    fdisk /dev/xvdg > > n > p > +2G > 82 (Linux swap) > t > w
+    mkswap /dev/xvdg1
+    swapon /dev/xvdg1
+    swapon -s OR cat /proc/swaps (status of how swap is composed, size, etc.)
+
+  [ How to Practice and Study After Completing the Course ]
+    Memorize downloadable study guide.
+    Run through all exercises and labs until the solutions are apparent and not a crutch.
+
+  [ Configure Key-Based Authentication for SSH ]
+    ssh-keygen -t rsa(default is rsa; can choose  dsa)
+    ssh-copy-id user@ipaddress
+    ssh-agent bash
+    ssh-add
+    ssh user@ipaddress rm -rf .ssh (removes SSH key on remote server)
+    **Permissions**
+    Private - 600
+    Public - 644
+
+  [ Create, Mount, Unmount, and Use vfat, ext4, and xfs File Systems ]
+    fdisk xvdf > n (new) > p (primary) > default 1 (partition number) > w (write)
+    mkfs.vfat /dev/xvdf1
+    mkdir /mnt/vfat
+    mount /dev/xvdf1 /mnt/vfat
+    df -h
+    **Will my settings survive a reboot?**
+    vim /etc/fstab > /dev/xvdf1 /mnt/vfat vfat default 1 2
+    umount /mnt/vfat
+    df -h
+    fdisk xvdf > d (delete) > p (primary) > default 1 (partition number) > w (write)
+    mkfs.ext4 /dev/xvdf1
+    mkdir /mnt/ext4
+    mount /dev/xvdf1 /mnt/ext4
+    df -h
+    vim /etc/fstab > /dev/xvdf1 /mnt/ext4 ext4 default 1 2
+    umount /mnt/ext4
+    fsck /dev/xvdf1 (erase unmounted partition)
+    blkid (UUID)
+    tune2fs -L ext4_label /dev/xvdf1 (ext4_label is the name)
+    fdisk xvdf > n (new) > p (primary) > default 1 (partition number) > w (write)
+    mkfs.xfs -f /dev/xvdf1(force overwrite file system)
+    mkdir /mnt/xfs
+    mount /dev/xvdf1 /mnt/xfs
+    vim /etc/fstab > /dev/xvdf1 /mnt/xfs xfs default 1 2
+    xfs_info /dev/xvdf1
+    umount /mnt/xfs
+    xfs_admin -L newlabel /dev/xvdf1
+
+  [ Mount and Unmount CIFS and NFS Network File Systems ]
+    yum -y install samba-client cifs-utils nfs-utils
+    smbclient -L ipaddress
+    mkdir -p /mnt/{sambashare,nfsshare}
+    mount -t nfs ipaddress:/nfsshare /mnt/nfsshare
+    mount -t cifs -o username=user_name //ipaddress/share_name (e.g., sambashare) /mnt/sambashare
+    df -h
+    vim /etc/fstab > //ipaddress/share_name /mnt/sambashare cifs username=user_name,password=password 0 0
+    vim /etc/fstab > ipaddress:/share_name /mnt/nfsshare nfs defaults 0 0
+    (u)mount -a
+    df -h
+
+  [ Extend Existing Logical Volumes ]
+    fdisk xvdf > n > p > default 1 > 8e (Linux LVM) > w
+    pvcreate /dev/xvdf1 > pvdisplay
+    vgcreate vg_name /dev/xvdf1 > vgdisplay
+    lvcreate -n lv_name -L 1G vg_name > lvdisplay
+    mkfs -t xfs /dev/vg_name/lv_name
+    mkdir /mnt/my_volume
+    mount /dev/vg_name/lv_name /mnt/my_volume
+    gdisk xvdg > n > default 1 > l (show codes) > 8e00 (Linux LVM) > w
+    pvcreate /dev/xvdg1
+    vgextend vg_name /dev/xvdg1 > vgdisplay
+    pvmove /dev/xvdf1
+    vgreduce vg_name /dev/xvdf1
+    lvextend -L 5G /dev/vg_name/lv_name
+    lvextend -L +5G (add space as opposed to total size) /dev/vg_name/lv_name
+    df -h
+    xfs_growfs /mnt/my_volume (non-destructive)
+    resize2fs /mnt/my_volume (EXT volumes)
+
+  [ Create and Configure set-GID Directories for Collaboration ]
+    groups user_name
+    chmod g+s (group + setgid)
+    ls -l
+    groupadd group_name
+    chown :group_owner group_name
+    chmod g+wX -R folder_name/
+
+  [ Create and Manage Access Control Lists (ACLs) ]
+    xfs and ext4 support ACLs
+    useradd user_name
+    cd /tmp
+    mkdir {dir1, dir2); touch {file1, file2}
+    ls -l
+    ** ACLs allow for granular control of files and folders**
+    **ACLs will have a plus sign at the end of permissions (e.g., drwxr-xr-x+)**
+    **ACLs leave owner and group in place (e.g., root:root)**
+    getfacl file1
+    setfacl -m u/g (user or group):user_name/group:rw file1
+    setfacl -m u:user_name:rw file1
+    getfacl file1
+    **mask - highest level permissions (e.g., rw-) available to user via ACL**
+    **chmod changes mask, not group permissions (i.e., group can have rw permission and mask will prevent file from being changed)**
+    setfacl -m m::r file1 (read-only mask for file1)
+    setfacl -m m::- file1 (no privileges mask for file1 == chmod 000)
+    groupadd group_name
+    setfacl -m g:group_name:rw file1
+    setfacl -d -m u :user_name:rw dir1  (set default ACL for users)
+    getfacl dir1
+    setfacl --remove-default (or "-x" for remove) dir1
+    **Execute permissions required to navigate into directory**
+    setfacl -x u:user_name dir1 (remove all user privileges from directory)
+    setfacl -x -d (defaults) u:user_name dir1 (remove all default user privileges from directory)
+    getfacl file1
+    setfacl -x g:group_name file1 (remove group privileges for file1)
+    setfacl -m -R g:group_name:rwX,u:starbuck:rw dir1 (string group and user recursively)
+    setfacl -m o::rwx file1  (set other to RWX)
+    getfacl file1 | setfacl --set-file=- file2 (pipe file1's privileges to file2; set equal to standard input (-))
+
+  [ Diagnose and Correct File Permission Problems ]
+    **Uppercase "X" gives execute permission to open directories, but not files**
+    **Check ACL on file AND directory mask**
+    **cp command doesn't preserve ACL**
+    **mv command preserves ACL**
+    **set-GID bit**
+
+  [ Configure Networking and Hostname Resolution Statically or Dynamically: Troubleshooting ]
+    **ifconfig is  deprecated in RHEL 7. Use "ip"**
+    ip addr show eth0
+    ping -c5 8.8.8.8 (ping 5 times)
+    tracepath 8.8.8.8 (shows mtu; newer than traceroute; doesn't work with all routers)
+    traceroute 8.8.8.8 (deprecated)
+    ss -atun  (all TCP UDP port; newer than netstat)
+    ip -s link show eth0 (show stats)
+
+  [ Configure Networking and Hostname Resolution Statically or Dynamically: Network Manager ]
+    nmcli dev status (network manager - shows all network devices)
+    nm [tab tab] (shows all nm* terminal choices)
+    nm-connection-editor (GUI for network manager)
+    nmtui (quasi-graphical CLI interface for network manager)
+    nmcli con show (shows connections)
+    nmcli con add con-name "my_connection" autoconnect yes type ethernet ifname eth1 (add new connection that connects on startup via Ethernet)
+    nmcli con show --active (show active connections)
+    nmcli dev show (shows two device (eth0 eth1 lo (loopback))
+    ip route
+    nmcli con add con-name "my_connection_static" autoconnect yes type ethernet ifname eth1 ip4 10.0.0.16 gw4 10.0.0.1 (static Ethernet)
+    nmcli con up/down "my_connection/_static" (bring connection up or down)
+    nmcli con mod "my_connection" connection.autoconnect yes (modify connection to xyz option (e.g., autoconnect))
+    nmcli con del "my_connection_static" (remove connection)
+
+  [ Configure Networking and Hostname Resolution Statically or Dynamically: Hostname Configuration ]
+    vim /etc/resolv.conf
+    vim /etc/hosts
+    vim /etc/nsswitch.conf
+    hostname
+    hostnamectl set-hostname mydomain.com
+    exec bash
+    hostnamectl status
+    nmcli con show
+    nmcli con mod "System eth0" ipv4.dns 8.8.8.8
+    cat /etc/resolv.conf
+    cat /etc/sysconfig/network-scripts/ifcfg-eth0
+    reboot
+    cat /etc/resolv.conf
+    getent hosts google.com
+
+  [ Schedule Tasks Using at and cron ]
+    yum install at
+    systemctl enable atd
+    systemctl start atd
+    at now +5 hours/minutes/days
+    at 12:00am
+    at> reboot
+    atq
+    atrm 1 (removes job 1)
+    at now +1 minute
+    at> logger "The system's current uptime is $(uptime)"
+    atq
+    journalctl -xn
+    cd /etc
+    ls | grep at
+    vim at.deny > username > all users but specified can use at
+    ls | grep cron
+    vim cron.deny > username > all users but specified can use cron
+    cd ~/
+    touch uptimelog
+    vim uptimelog
+    > #!/bin/bash
+    >logger "The system's current uptime is $(uptime)"
+    chmod +x uptimelog
+    ./uptimelog
+    cd /etc
+    **crontab -e : user's cron**
+    **system cron has user-name option whereas crontab does not**
+    **cron runs only when machine is turned on --  otherwise it skips job**
+    cp uptimelog /etc/cron.daily (uptimelog runs daily)
+    cd /etc/cron.d/
+    rpm -qc pkg_name (q=query, c=config files)
+    **anacron schedules cron.hourly/daily/weekly/monthly scripts**
+    **anacron runs scripts that haven't run in so many days based on timestamps**
+    vim /etc/anacrontab
+    > 3 0 uptimelog /home/user/uptimelog
+    anacron -n (runs jobs immediately)
+    journalctl -xn (shows anacron jobs that have run today)
+    cd /var/spool/anacron
+    cat uptimelog (shows last date it was run)
+
+  [ Start & Stop Services and Configure Services to Start Automatically at Boot ]
+    yum install httpd
+    systemctl status httpd
+    systemctl start httpd
+    systemctl is-enabled httpd (shows currently disabled)
+    systemctl list-unit-files --type=service | grep httpd
+    systemctl get-default (shows multi-user target)
+    reboot
+    **httpd didn't start at boot**
+    systemctl list-dependencies | grep httpd
+    systemctl enable httpd
+    systemctl status httpd
+    reboot
+    **once enabled, program starts at boot time**
+    cd /etc/systemd/system/
+    cd /etc/systemd/system/multi-user.target.wants/
+    ls
+    systemctl list-dependencies graphical.target | grep multi-user
+    systemctl disable httpd
+    systemctl is-enabled httpd (shows currently disabled)
+    systemctl status httpd (running, but disabled on next boot)
+
+  [ Configure Systems to Boot into a Specific Target Automatically ]
+    systemctl get-default
+    systemctl set-default graphical.target
+    systemctl set-default multi-user.target
+
+  [ Configure a Physical Machine to Host Virtual Guests ]
+    systemctl enable libvirtd (VM boots at login)
+    systemctl start libvirtd 
+    Open Virtual Machine Manager (GUI)
+    virsh (CLI)
+
+  [ Configure Systems to Launch Virtual Machines at Boot ]
+    systemctl status libvirtd
+    systemctl enable libvirtd
+    virsh
+    > list --all
+    > autostart vm-name
+    reboot
+
+  [ Configure Network Services to Start Automatically at Boot ]
+    systemctl status network
+    sytemctl list-units | grep network.target
+    sytemctl list-dependencies multi-user.target | grep network
+    cd /etc/sysconfig/network-scripts
+    nmcli con show
+    nmcli con mod "ens3" connection.autoconnect yes
+    cat ifcfg-ens3
+    > ONBOOT=yes
+
+  [ Configure a System to Use Time Services ]
+    chronyd
+    timedatectl
+    timedatectl set-ntp false
+    timedatectl list-timezones
+    tzselect
+    timedatectl set-timezone America/Chicago
+    timedatectl set-time 12:32:15
+    systemctl status chronyd
+    chronyc sources -v
+    systemctl restart chronyd
+    chronyc sources -v
+    chronyc tracking
+    vim /etc/chrony.conf
+    systemctl restart chronyd
+
+  [ Install and Update Software Packages from Red Hat Network, a Remote Repository, or From the Local File System: YUM ]
+    yum check-update
+    yum update -y
+    yum search apache
+    yum search all apache
+    yum info httpd
+    yum install httpd
+    yum list installed | grep httpd
+    yum (what)provides /var/www
+    yum remove httpd
+    yum cleanall (I.e., autoremove)
+
+  [ Install and Update Software Packages from Red Hat Network, a Remote Repository, or From the Local File System: RPM ]
+    yum search nano
+    yumdownloader nano
+    rpm -ivh nano-* (install verbose hash (progress bar))
+    rpm -qa (query all packages)
+    rpm -q nano
+    rpm -ql nano (query list - what files were installed by nano)
+    rpm -qd nano (query docs installed by nano)
+    rpm -e nano (remove or erase nano package)
+    rpm -qa nano
+    yum localinstall nano-*
+    ** local install can locate dependencies**
+    ** local installs show up in both yum and rpm queries **
+
+  [ Install and Update Software Packages from Red Hat Network, a Remote Repository, or From the Local File System: Managing Repositories ]
+    cd /etc/yum.repos.d
+    vim redhat-rhui-client-config.repo
+    yum repolist
+    yum repolist all (shows enabled and disabled repos)
+    yum-config-manager --add-repo http://dl.fedoraproject.org/pub/epel/7/x86_64/
+    ** disable repo by editing repo file or the below command **
+    yum-config-manager --enable(disable) dl.fedoraproject.org_pub_epel_7_x86_64_
+    rm -rf redhat-rhui-client-config.repo
+
+  [ Install and Update Software Packages from Red Hat Network, a Remote Repository, or From the Local File System: Configuring A Local Repository ]
+    mkdir -p /repos/local
+    mount -o loop rhel-server.iso /repos/local
+    df -h
+    cd /repos/local
+    cd /etc/yum.repos.d
+    rm redhat-rhui*
+    vim local-repo.repo
+    > [local-repo]
+    > name= Red Hat Local Repo
+    > baseurl=file:///repos/local
+    > enable=1
+    >gpgcheck=0
+    yum repolist
+
+  [ Update the Kernel Package Appropriately to Ensure a Bootable System ]
+    uname -r
+    uname -a
+    yum upgrade (would update the kernel)
+    yum clean all
+    yum list kernel
+    yumdownloader kernel
+    rpm -ivh kernel-3*
+    ** dependency error **
+    yum install linux-firmware
+    rpm -ivh kernel-3*
+    cd /boot
+    ** shows matching initramfs 3-* **
+    reboot
+
+  [ Install and Update Software Packages from Red Hat Network, a Remote Repository, or From the Local File System: Configuring A Local Repository: Configure The GPG Key ]
+    yum-config-manager --add-repo http://dl.fedoraproject.org/pub/epel/7/x86_64/
+    cd /etc/pki/rpm-gpg
+    wget http://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY
+    cd /etc/yum.repos.d
+    vim redhat-rhui.repo
+    > gpgcheck=1
+    > gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY
+    yum install python-pip
+    ** prompts for GPG check when installing **
+
+  [ Modifying the System Bootloader ]
+    yum list kernel
+    grub2-set-default 1 (0 is default and newest)
+    reboot
+    grub2-set-default 0 (revert back to newest kernel)
+
+  [ Create, Delete, and Modify Local User Accounts ]
+    id (shows guid, gid, groups, etc.)
+    ** users with GID 1-200 are system users, RH processes **
+    ** GID 201-999 are user processes that don't own files (e.g., apache) **
+    vim /etc/login.defs (default settings for new users)
+    vim /etc/default/useradd (change group, home, shell, etc.)
+    useradd user_name
+    useradd -M user_name (don't create home directory)
+    passwd user_name
+    usermod -L user_name (lock user)
+    usermod -U user_name (unlock user)
+    cat /etc/shadow (shows passwords/hashes, bang(!) before hash means user is locked)
+    usermod -u 1010 user_name (change UID to 1010)
+    id user_name
+    useradd -d /home/location/ user_name
+    usermod -G wheel user_name (assign user to wheel group)
+    userdel user_name (add "-r" to remove home directory)
+
+  [ Change Passwords and Adjust Password Aging for Local User Accounts ]
+    vim /etc/login.defs (password min/max days, character length, expiration, etc.)
+    useradd user_name
+    passwd
+    usermod -s /sbin/nologin user_name
+    cat /etc/shadow
+    chage -l user_name (password change date, expiration date, inactive, account expiration, etc.)
+    date -d '+40days' +%F (date 40 days from now in YYYYMMDD format)
+    chage -E 2015-06-05 user_name (make account expire on date)
+    chage -M 90 user_name (make *password* expire 90 days from today)
+    chage -l user_name
+    chage -E -1 user_name ("-1" removes account expiration)
+    chage -M 5 user_name (days to warn about expiration)
+    chage -d 0 user_name (expire password for user immediately; user has to change password next login)
+    chage -I 5 user_name (set inactive password 5 days after expiration; user has to contact admin to access account)
+    chage -W 3 user_name (change warning days to 3)
+
+  [ Create, Delete, and Modify Local Groups and Group Memberships ]
+    cat group
+    getent group user_name
+    groupadd class_name
+    useradd user_name
+    groups user_name
+    passwd user_name
+    usermod -g group_name user_name (change primary group)
+    id user_name
+    chown root:group_name file/dir
+    usermod -aG group_2 user_name (append group to user)
+    newgrp group_1 (sets primary group to group_1)
+    newgrp group_1 - (reinitializes primary group)
+    newgrp group_2 - (switches primary to group_2)
+    ** newgrp is session only, doesn't modify user account **
+    groupmod -n old_group_name new_group_name
+    groupmod -g 1010 group_name (changes group ID (GID))
+    groupdel group_name (delete group)
+    ** remove user that has group as primary before groupdel **
+    usermod -g group_name user_name
+
+  [ Using set-GID On Directories  ]
+    groupadd group_name
+    chown :group_name dir_name
+    usermod -aG group_name user_name (append user to group)
+    chmod g+s dir_name (inherit parent directory permissions)
+
+  [ Configure a System to Use an Existing Authentication Service for User and Group Information: Using Realmd ]
+    yum install realmd
+    realm discover ad_domain_name
+    yum upgrade
+    yum install whatever_dependencies_listed
+    realm join ad_domain_name
+    realm discover ad_domain_name
+    vim /etc/ssh/sshd_config
+    > Kerberos options (uncomment and set all to yes)
+    systemctl restart sshd
+    cat /etc/password | grep ad_user_name
+    authconfig-gtk (GUI AD tool that stands in for realmd; not installed by default)
+
+  [ Introduction to SELinux ]
+    ** SELinux has three modes: enabled, passive, disabled **
+    ** To disable: vim /etc/selinux/config > reboot **
+    ** Boolean - conditional rule that allows runtime modification of security policy without loading a new policy **
+
+  [ Set enforcing and permissive modes for SELinux ]
+    getenforce
+    setenforce 0 (permissive mode)
+    ** setenforce only applies until reboot **
+    setenforce 1 (enabled / enforcing mode)
+    vim /etc/selinux/config
+    > SELINUX=enforcing / permissive / disabled
+
+  [ List and identify SELinux file and process context ]
+    systemctl start httpd
+    ls -Z (show context)
+    semanage fcontext -l | grep httpd (list all available contexts then filter by httpd)
+    semanage fcontext -l | grep /var/www/
+    restorecon file_name (changes context to match directory)
+    touch /.autorelabel
+    ** Relabels all files after reboot. Occurs after SELinux is configured for first time, re-enabled, or autorelabel is called **
+
+  [ Restore Default File Contexts ]
+    semanage fcontext -l
+    vim /etc/httpd/conf/httpd.conf
+    > DocumentRoot "/content"
+    > <Directory "/content">
+    > <Directory "/content">
+    mkdir /content
+    systemctl restart httpd
+    chown apache:apache -R /content
+    vim index.html
+    ls -Z
+    setenforce 0 (permissive)
+    getenforce > Permissive
+    setenforce 1 (enabled)
+    semanage fcontext - l | grep /var/www
+    semanage fcontext -a -t (add type) httpd_sys_content_t '/content(/.*)?' (regex for new files to inherit context)
+    restorecon -Rv /content (restore context recursively verbose)
+    ** restorecon is persistent across reboots **
+    semanage fcontext -l | grep /content
+    semanage fcontext -d "/content(/.*)?" (deletes context for /content directory)
+    restorecon -Rv /content
+
+  [ Use Boolean Settings to Modify System SELinux Settings ]
+    getsebool -a (list available booleans on system)
+    semanage boolean -l (lists boolean, state, default on/off status on boot, and description)
+    yum install httpd
+    systemctl start httpd
+    systemctl enable httpd (persistent reboot)
+    cd /etc/httpd/conf.d/ > cat userdir.conf
+    sed -i ("i" replaces instance and backs up file)  's/disabled/public_html/' userdir.conf
+    systemctl restart httpd
+    cd /home/
+    chmod 711 user_dir/
+    cd /user_dir/ > mkdir public_html
+    echo "This is my webpage" > public_html/index.html
+    chown user:user_name -R public_html
+    chmod 755 -R public_html/
+    setenforce 0 (permissive)
+    setenforce 1 (enabled)
+    semanage boolean -l | grep httpd_enable_homedirs
+    setsebool httpd_enable_homedirs on (session only)
+    semanage boolean -l | grep httpd_enable_homedirs (shows on, but set to off for default)
+    setsebool -P httpd_enable_homedirs on (persistent)
+    semanage boolean -l | grep httpd_enable_homedirs (shows on, set to on for default)
+
+  [ Diagnose and Address Routine SELinux Policy Violations ]
+    yum install setroubleshoot-server
+    setsebool httpd_enable_homedirs off
+    tail /var/log/audit/audit.log (shows SELinux log in entirety)
+    sealert -a /var/log/audit/audit.log (clean output with analysis)
+    vim /etc/httpd/conf/httpd.conf
+    > Change all <Directory> lines to <Directory "/content">
+    mkdir /content
+    systemctl restart httpd
+    echo "This is my website" > /content/index.html
+    chown apache:apache /content
+    sealert -a /var/log/audit/audit.log
+    ** shows SELinux is preventing httpd... getattr **
+
+  [ Access a Shell Prompt and Issue Commands With Correct Syntax ]
+    ls -al (list all longform)
+    cal 9 9 2015 (September 9th, 2015)
+    mv source destination
+    date +%d (numerical date)
+
+  [ Install Red Hat Enterprise Linux Automatically Using Kickstart ]
+    vim /anaconda-ks.cfg
+    yum install system-config-kickstart (GUI)
+    ** generates ks.cfg interactively **
+    rpm -qd (list docs) pykickstart
+    vim /usr/share/doc/pykickstart-*/kickstart-docs.txt
+    > search for install section with installation media options (url, hard drive, etc)
+    ** packages are also listed in kickstart-docs.txt **
+    ** connect to VM or SSH into PXE server **
+    Applications > Virtual Machine Manager > Network Boot (PXE)
+    ** if PXE server on same network, it will connect automatically **
+    ** make VM use same hardware / partition options as ks.cfg **
+    reboot
+    ** check nuggets for how to create a PXE server **
+
+  [ Configure Firewall Settings Using firewall-config, firewall-cmd, or iptables ]
+    yum install firewalld firewall-config
+    systemctl start firewalld
+    systemctl enable firewalld (persistent)
+    ** firewalld has run-time change (no reload necessary) (session only) **
+    firewall-cmd --get-zones (CLI)
+    firewall-cmd --get-default-zone (public is default)
+    firewall-cmd --list-all
+    firewall-cmd --zone=home --list-all
+    firewall-cmd --zone=home --add-source=ip_address_range (e.g., 192.168.1.0/24)
+    firewall-cmd --reload (session)
+    firewall-cmd --zone=home --permanent --add-source=ip_address_range (e.g., 192.168.1.0/24) (persistent)
+    yum install httpd
+    systemctl start httpd
+    systemctl enable httpd
+    curl -k ip_address (fails to connect due to firewalld)
+    firewall-cmd --zone=public --add-port=80/tcp (session)
+    firewall-cmd --zone=public --list-all
+    curl -k ip_address (connects after port 80 being enabled)
+    firewall-cmd --zone=public --add-port=80/tcp  --permanent (persistent)
+    firewall-config (GUI)
+    systemctl start firewalld
+    systemctl enable firewalld
+    Zones > public > permanent > add/remove port 80 > reload
+    firewall-cmd --panic-on (locks down everything but local console)
+    firewall-cmd --query-panic
+
+  [ Use Input/Output Redirection ]
+    echo "hello" > cat-motd.txt (overwrites contents of text file)
+    echo "hello" >> cat-motd.txt (appends contents of text file)
+    cat /etc/motd /etc/issue > /home/user/cat-mod.txt (combines two files and places them in home directory)
+    cat /etc/motd /etc/issue >> /home/user/cat-mod.txt (combines via append two files and places them in home directory)
+    mysql table_name < backup.sql (table accepting input from backup file)
+    gobbledygook_error 2> badcommand.txt (if bad command exists, overwrite text file)
+    gobbledygook_error 2>> badcommand.txt (if bad command exists, append to text file)
+    ./command &> output.out (overwrites text error and standard output in file)
+    ./command &>> output.out (appends text error and standard output in file)
+    gobbledygook_error 2>&1 | grep command (chains standard output as input for next command, grep)
+    ls /etc/ | grep motd
+    ls -fy >> log.file 2>&1 (sends standard output to standard error)
+    head /var/log/messages (first 50 messages to standard output)
+    tail /var/log/messages (last 10 messages of file)
+    tail -f /var/log/messages (continue appending messages live)
+
+  [ Use grep and Regular Expressions to Analyze Text ]
+    vim file
+    > hello linux academy / linuxacademy hello world / hello world linuxacademy / / linuxacademy / linuxacademy linuxacademy / #linuxacademy / LinuxAcademy / aaaaaaaaaaaaaaa / a{1,} / 123123 /  lionuxacdemy
+    grep '^#' /etc/ssh/sshd_config (every line that begins with a hash)
+    grep -i 'rsaauth' /etc/ssh/sshd_config (case insensitive search for rsaauth)
+    grep 'user_name' /etc/passwd
+    grep -v '^#' file ("-v" is inverse) (every line that begins with a hash)
+    grep '^hello' file
+    dmesg | grep 'memory'
+    grep 'world$' file (return each line with the last string ending in "world")
+    grep -i linuxacademy file (case insensitive)
+    grep -i '^linuxacademy$' file (return each line that starts AND ends with Linux Academy, case insensitive)
+    grep [lL]inuxacdemy file (matches upper or lower case "L" Linux Academy)
+    grep '^[lL]inuxacdemy' file (starts with upper or lower case "L" Linux Academy)
+    grep '[^linux]' (match any character not contained in brackets, not red)
+    ** ? - preceding item is optional and matches one time **
+    grep -E '(a)+' file (grep extended, matches "a" one or more times)
+    grep 'l...x' file (match any characters that start with "l" and end with "x")
+    cat /etc/passwd
+    grep ':$' /etc/passwd (show all users that don't have a shell associated)
+    grep 'nologin' /etc/passwd (no login on shell)
+    grep systemd /var/log/messages
+    grep systemd /var/log/messages | grep 'start'
+    grep systemd /var/log/messages | grep 'desktop'
+
+  [ Archive, Compress, Unpack, and Uncompress Files Using tar, star, gzip, and bzip2 ]
+    tar -cvf logs.tar /var/log
+    tar -tf logs.tar
+    gzip logs.tar
+    tar -zxvf logs.tar.gz
+    yum install star
+    star -c /root/var/log f=user-logs.tar 
+    star -t f=user-logs.tar
+     yum install bzip2
+    bzip2 user-logs.tar
+    star -bz -x f=user-logs.tar.bz2
+
+  [ Finding Files With Locate And Find ]
+    yum install mlocate
+    man locate
+    find  -name motd
+    find /etc -user 
+    find / -mtime -3 (last three days)
+    man find
+    useradd 
+    id 
+    find / -uid 
+    find / -user lance -type f -exec cat \;
+    [find / -user  -type  (file) -exec (execute command) cat (command) \; (end command)]
+    find / -user lance -type f -exec cp {} (all files found) /home/ \;
+    Find vs. Locate * Find is running search in realtime * Locate is searching through a database (updatedb) of static items 
+
+  [ Interrupt the Boot Process in Order to Gain Access to a System ]
+    initramfs > grub > select a kernel version > "e"
+    Navigate to line starting with /vmlinuz-3.x.x-x.x.x86_64 root=...
+    Add rd.break to the end (on RHEL/CentOS, this is after LANG=\en_US.UTF-8)
+    *emergency mode*
+    mount -oremount,rw /sysroot
+    chroot /sysroot [acts as root directory allowing for passwd command]
+    passwd
+    touch /.autorelabel (ensures password sticks on reboot)
+    exit (2x)
+
+  [ Identify CPU/Memory Intensive Processes, Adjust Process Priority with Renice, and Kill Processes (Part 3) ]
+    top
+    Shift-M [sort by memory]
+    Shift-P [sort by CPU]
+    r [renice by process id]
+     -20 [nice level]
+    k  [kill process via top]
+
+  [ Log-in and Switch Users in Multiuser Targets ]
+    systemctl get-default (shows multi-user target)
+    su (login as different user sans profile customization info such as .bashrc, .ssh, and other dot files)
+    bash_profile - login shell
+    bashrc - interactive shell (switched from a different user via su)
+    systemctl list-units --type=target
+    systemctl list-units --type=target --all (all installed targets)
+    systemctl list-units --type=target | grep multi-user.target (search for multi-user target)
+    systemctl set-default multi-user.target (sets boot target to multi-user)
+    systemctl -t help (view available systemd configuration units)
+    systemctl status sshd.service
+    systemctl list-units --type=service (list active service unit configuration files)
+    systemctl is-active httpd (check status of service)
+    systemctl is-enabled httpd (verify whether service is enabled)
+    systemctl list-units --type=service -all (view enabled/disabled settings for all services)
+    systemctl list-units --all (list all service unit config files whether enabled/disabled)
+
+  [ Boot Systems Into Different Targets Manually ]
+    systemd manages OS services and configuration files in parallel fashion.
+    targets - configurations that load up during OS boot
+    target dependencies - called from runlevel directory by target mode selected in grub
+    primary four targets used: multi-user, graphical, emergency, and rescue (.target respectively)
+    systemctl get-default - display current target
+    systemctl isolate  - switch between targets
+    systemctl set-default  - boots into different target (symlinked as /usr/lib/systemd/system/default.target)
+    **At Boot**
+    Hit 'e' on a Linux kernel > linux16 /vmlinuz-3.10.... (EOL)
+    Add systemd.unit=emergency.target > CTRL-X
+
+  [ Boot, Reboot, and Shut Down a System Normally ]
+    systemd - handles initialization and shutdown of unit configuration files (replaces run levels)
+    **systemd commands**
+    > systemctl reboot
+    > shutdown -r +5 System going down for a reboot
+    > shutdown -c (cancel/stop reboot)
+    > shutdown -r 00:00 (schedule reboot for midnight)
+    > shutdown -r now (AKA +0 or immediately)
+    > shutdown -h now (AKA systemctl halt  AKA halt)
+    **targets**
+    cd /usr/lib/systemd/
+    cd /system/ (default targets used by OS)
+    **systemd commands CTD**
+    > shutdown -p
+
+  [ Identify CPU/Memory Intensive Processes, Adjust Process Priority with Renice, and Kill Processes (Part 1) ]
+    **ps + grep = pgrep**
+    pgrep -l
+    yum install httpd
+    pgrep httpd
+    pregp -u user_name -l vim (process being run by user)
+    **processes not owned by user**
+    pgrep -v -u root_user
+    pkill httpd
+    pgrep httpd
+    kill -19 process_name (SIGSTOP - can restart process with kill signals later)
+    pkill -t pts/0 (closes all processes from user by TTY and closes all programs -- leaves user logged in)
+    w (user, TTY, IP, login info, uptime; 1, 5, and 15 minute load averages)
+    pgrep -u user_name -l (lists all processes being run by user)
+    pkill -u user_name sshd (boots user's SSH session logging them out)
+    kill -SIGSTOP %1 (%1 is the job number, if the job was 2 it would be %2)
+    kill -SIGCONT %1
+    kill -SIGKILL %1
+
+  [ Identify CPU/Memory Intensive Processes, Adjust Process Priority with Renice, and Kill Processes (Part 2) ]
+    pkill httpd
+    pgrep httpd
+    nice -n -20 httpd
+    pgrep httpd
+    renice -n 0 $(pgrep -s 1659)
+    systemctl start/stop httpd
+
