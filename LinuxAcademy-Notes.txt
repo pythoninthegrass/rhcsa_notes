@@ -58,7 +58,7 @@
     vim /etc/fstab > UUID=gibberish /mnt/mount1 xfs defaults 1 2
     vim /etc/fstab > UUID=gibberish /mnt/mount2 ext4 defaults 1 2
     **Can also use LABEL= instead of UUID=)**
-    (u)mount -a 
+    (u)mount -a
 
   [ Add New Partitions and Logical Volumes, and Swap to a System Non-Destructively ]
     free -m (shows free RAM and swap)
@@ -306,7 +306,7 @@
 
   [ Configure a Physical Machine to Host Virtual Guests ]
     systemctl enable libvirtd (VM boots at login)
-    systemctl start libvirtd 
+    systemctl start libvirtd
     Open Virtual Machine Manager (GUI)
     virsh (CLI)
 
@@ -679,7 +679,7 @@
     gzip logs.tar
     tar -zxvf logs.tar.gz
     yum install star
-    star -c /root/var/log f=user-logs.tar 
+    star -c /root/var/log f=user-logs.tar
     star -t f=user-logs.tar
      yum install bzip2
     bzip2 user-logs.tar
@@ -689,16 +689,16 @@
     yum install mlocate
     man locate
     find  -name motd
-    find /etc -user 
+    find /etc -user
     find / -mtime -3 (last three days)
     man find
-    useradd 
-    id 
-    find / -uid 
+    useradd
+    id
+    find / -uid
     find / -user lance -type f -exec cat \;
     [find / -user  -type  (file) -exec (execute command) cat (command) \; (end command)]
     find / -user lance -type f -exec cp {} (all files found) /home/ \;
-    Find vs. Locate * Find is running search in realtime * Locate is searching through a database (updatedb) of static items 
+    Find vs. Locate * Find is running search in realtime * Locate is searching through a database (updatedb) of static items
 
   [ Interrupt the Boot Process in Order to Gain Access to a System ]
     initramfs > grub > select a kernel version > "e"
@@ -790,3 +790,10 @@
     renice -n 0 $(pgrep -s 1659)
     systemctl start/stop httpd
 
+  [ Working with Yum Groups ]
+    yum group list
+    yum group info "Security Tools"
+    yum group install "Security Tools"
+    yum history
+    yum history info <17>
+    yum history undo <17>
